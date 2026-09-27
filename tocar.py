@@ -74,6 +74,7 @@ opts.set_capability("appium:wdaStartupRetries", 4)
 opts.set_capability("appium:wdaStartupRetryInterval", 15000)
 print("abrindo o Safari no", R["aparelho"], flush=True)
 drv = webdriver.Remote("http://127.0.0.1:4723", options=opts)
+drv.set_script_timeout(45)   # 27/09: o padrão do Appium é 3 ms e o retrato da chamada (fetch) caía antes de começar
 WEB = [drv.current_context]
 print("contexto da página:", WEB[0], flush=True)
 
