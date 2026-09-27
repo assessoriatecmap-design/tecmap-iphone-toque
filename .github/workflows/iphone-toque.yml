@@ -29,13 +29,18 @@ jobs:
       - name: Ligar o iPhone simulado
         run: |
           xcodebuild -version
+          # 27/09: o Mac tem iOS 26 instalado, mas o Xcode padrão (16.4) não liga iOS 26: o Appium esperou 2 min e
+          # desistiu. O iPhone escolhido é o do iOS que o Xcode ativo compila (SDK do simulador), nunca o mais novo.
+          export SDK=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          echo "SDK do simulador: $SDK"
           python3 - <<'EOF' >> "$GITHUB_ENV"
-          import json, re, subprocess
+          import json, os, re, subprocess
           d = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          sdk = tuple(int(x) for x in os.environ["SDK"].split(".")[:2])
           def versao(k):
               m = re.search(r"iOS-(\d+)-(\d+)", k)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          for k in sorted([k for k in d if "iOS" in k], key=versao, reverse=True):
+          for k in sorted([k for k in d if "iOS" in k and versao(k) <= sdk], key=versao, reverse=True):
               iphones = [x for x in d[k] if re.match(r"^iPhone \d+( Pro)?$", x["name"])] or [x for x in d[k] if x["name"].startswith("iPhone")]
               if iphones:
                   x = iphones[0]
