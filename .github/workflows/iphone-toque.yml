@@ -1,5 +1,5 @@
 # Toque de verdade no Safari do iPhone simulado (27/09/2026, TECMAP).
-# Repositório PÚBLICO de propósito: no GitHub Free o Mac de repositório público não gasta a cota de minutos.
+# Repositório PÚBLICO de propósito e de vez: no GitHub Free o Mac de repositório público não gasta a cota de minutos.
 # Nada de código de cliente aqui: só o roteiro. Login e senha da demonstração chegam por segredo.
 name: iPhone - toque de verdade
 on:
@@ -58,6 +58,17 @@ jobs:
           nohup appium --address 127.0.0.1 --port 4723 --log appium.log --log-no-colors > /dev/null 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:4723/status > /dev/null && break; sleep 2; done
           curl -s http://127.0.0.1:4723/status
+      - name: Aquecer o Safari
+        # 27/09: no iPhone recém-ligado, a 1ª abertura do Safari passa de 30 s e o robô de toque desiste
+        # («Timed out attempting to launch app»). Abre uma vez antes, com a página-controle, e fecha.
+        run: |
+          xcrun simctl launch "$UDID" com.apple.mobilesafari || true
+          sleep 25
+          xcrun simctl openurl "$UDID" "http://127.0.0.1:8765/controle.html" || true
+          sleep 15
+          xcrun simctl io "$UDID" screenshot aquecido.png || true
+          xcrun simctl terminate "$UDID" com.apple.mobilesafari || true
+          sleep 5
       - name: Tocar
         env:
           URL_TESTE: ${{ inputs.url }}
@@ -71,4 +82,5 @@ jobs:
           path: |
             saida/
             appium.log
-          retention-days: 3
+            aquecido.png
+          retention-days: 1
