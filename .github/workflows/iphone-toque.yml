@@ -1,0 +1,69 @@
+# Toque de verdade no Safari do iPhone simulado (27/09/2026, TECMAP).
+# Repositório PÚBLICO de propósito: no GitHub Free o Mac de repositório público não gasta a cota de minutos.
+# Nada de código de cliente aqui: só o roteiro. Login e senha da demonstração chegam por segredo.
+name: iPhone - toque de verdade
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: endereço a testar (cópia de demonstração)
+        required: true
+jobs:
+  iphone:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Appium e o driver do iPhone
+        run: |
+          npm install -g appium
+          appium driver install xcuitest
+          pip install Appium-Python-Client
+          appium --version
+      - name: Ligar o iPhone simulado
+        run: |
+          xcodebuild -version
+          python3 - <<'EOF' >> "$GITHUB_ENV"
+          import json, re, subprocess
+          d = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          def versao(k):
+              m = re.search(r"iOS-(\d+)-(\d+)", k)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          for k in sorted([k for k in d if "iOS" in k], key=versao, reverse=True):
+              iphones = [x for x in d[k] if re.match(r"^iPhone \d+( Pro)?$", x["name"])] or [x for x in d[k] if x["name"].startswith("iPhone")]
+              if iphones:
+                  x = iphones[0]
+                  print("UDID=" + x["udid"]); print("SIM_NOME=" + x["name"]); print("SIM_IOS=%d.%d" % versao(k))
+                  break
+          EOF
+          cat "$GITHUB_ENV"
+      - name: Dar a partida no iPhone
+        run: |
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+      - name: Página-controle e servidor do Appium
+        run: |
+          (cd controle && nohup python3 -m http.server 8765 > ../http.log 2>&1 &)
+          nohup appium --address 127.0.0.1 --port 4723 --log appium.log --log-no-colors > /dev/null 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:4723/status > /dev/null && break; sleep 2; done
+          curl -s http://127.0.0.1:4723/status
+      - name: Tocar
+        env:
+          URL_TESTE: ${{ inputs.url }}
+          LOGINS_JSON: ${{ secrets.LOGINS_JSON }}
+          SENHA_DEMO: ${{ secrets.SENHA_DEMO }}
+        run: python3 tocar.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultado
+          path: |
+            saida/
+            appium.log
+          retention-days: 3
