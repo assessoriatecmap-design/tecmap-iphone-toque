@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>controle do toque</title>
+<style>
+  body { margin: 0; font: 17px -apple-system, sans-serif; background: #fff; }
+  .b { box-sizing: border-box; display: flex; align-items: center; justify-content: center; height: 120px; margin: 18px;
+       border-radius: 14px; border: 2px solid #888; width: calc(100% - 36px); font: inherit; }
+</style>
+</head>
+<body>
+  <div class="b" id="sem" style="background:#eee">div SEM cursor:pointer</div>
+  <div class="b" id="com" style="background:#d6e6ff;cursor:pointer">div COM cursor:pointer</div>
+  <button class="b" id="bt" style="background:#e8ffe0">botão de verdade</button>
+  <div style="height:600px"></div>
+  <script src="controle.js"></script>
+</body>
+</html>
