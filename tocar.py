@@ -69,6 +69,9 @@ opts.set_capability("appium:webviewConnectTimeout", 60000)
 # o fluxo já ligou o iPhone sem janela; sem isto o Appium o reinicia com janela e espera de novo (27/09: 2 min perdidos)
 opts.set_capability("appium:isHeadless", True)
 opts.set_capability("appium:simulatorStartupTimeout", 300000)
+# a 1ª abertura do Safari num iPhone recém-ligado passa de 30 s (27/09); o fluxo aquece antes e aqui tenta mais vezes
+opts.set_capability("appium:wdaStartupRetries", 4)
+opts.set_capability("appium:wdaStartupRetryInterval", 15000)
 print("abrindo o Safari no", R["aparelho"], flush=True)
 drv = webdriver.Remote("http://127.0.0.1:4723", options=opts)
 WEB = [drv.current_context]
