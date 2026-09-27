@@ -116,6 +116,27 @@ def tela():
     return js("return (document.querySelector('.screen.on')||{}).id||'';")
 
 
+# 27/09: depois do login o iOS abre «Save Password?» POR CIMA da página, e nenhum toque chega nela (aluno e professor:
+# 0 de 17). Quem usa de verdade toca em «Not Now»; o roteiro faz o mesmo antes de seguir.
+AVISOS_DO_IOS = "label IN {'Not Now', 'Agora Não', 'Agora não', 'Never for This Website', 'Nunca Neste Site'}"
+
+
+def fechar_avisos_do_ios():
+    fechou = 0
+    nativo()
+    for _ in range(3):
+        b = [x for x in drv.find_elements(AppiumBy.IOS_PREDICATE, AVISOS_DO_IOS) if x.get_attribute("label") in ("Not Now", "Agora Não", "Agora não")]
+        if not b:
+            break
+        b[0].click()
+        fechou += 1
+        time.sleep(1.2)
+    web()
+    if fechou:
+        print("   (fechei %d aviso(s) do iOS: «Save Password?»)" % fechou, flush=True)
+    return fechou
+
+
 SONDA = """if (!window.__sondaOk) { window.__sondaOk = 1; window.__sonda = [];
   ['touchstart', 'touchend', 'click'].forEach(function (t) {
     document.addEventListener(t, function (e) {
@@ -150,8 +171,16 @@ def calibrar():
     return r["x"] - 40 * esc, r["y"] - 120 * esc, esc
 
 
-def tocar(achar, nome, esperar=1.2):
-    """Toca com o dedo no centro do elemento que `achar` (corpo de função JS) devolve. Devolve o que a sonda viu."""
+def tocar(achar, nome, esperar=1.2, _de_novo=False):
+    """Toca com o dedo no centro do elemento que `achar` (corpo de função JS) devolve. Devolve o que a sonda viu.
+    Se o dedo não chegou na página e havia um aviso do iOS por cima, fecha o aviso e toca de novo (uma vez)."""
+    t = _tocar(achar, nome, esperar)
+    if t and not t["dedo"] and not _de_novo and fechar_avisos_do_ios():
+        return tocar(achar, nome, esperar, _de_novo=True)
+    return t
+
+
+def _tocar(achar, nome, esperar):
     info = js("""document.querySelectorAll('[data-alvo-teste]').forEach(function (e) { e.removeAttribute('data-alvo-teste'); });
       var el = (function () { %s })(); if (!el) return null;
       el.setAttribute('data-alvo-teste', '1'); el.scrollIntoView({block: 'center', inline: 'center'});
@@ -234,6 +263,8 @@ def entrar(papel):
         return False
     time.sleep(2)
     ok("%s: entrou pelo toque no Entrar" % papel)
+    time.sleep(1.5)
+    fechar_avisos_do_ios()
     foto(papel + "-entrou")
     return True
 
